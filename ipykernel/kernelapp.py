@@ -364,6 +364,23 @@ class IPKernelApp(BaseIPythonApplication, InteractiveShellApp,
         kernel.record_ports(self.ports)
         self.kernel = kernel
 
+    def push_nested_kernel(self):
+        old_kernel = self.kernel
+        kernel_factory = self.kernel_class.instance
+        kernel = kernel_factory(parent=self, session=self.session,
+                                shell_streams=old_kernel.shell_streams,
+                                iopub_thread=old_kernel.iopub_thread,
+                                iopub_socket=old_kernel.iopub_socket,
+                                stdin_socket=old_kernel.stdin_socket,
+                                log=old_kernel.log,
+                                profile_dir=self.profile_dir,
+                                user_ns=self.user_ns,
+        )
+        kernel.record_ports(old_kernel._recorded_ports)
+        self.kernel = kernel
+        return old_kernel
+
+
     def init_gui_pylab(self):
         """Enable GUI event loop integration, taking pylab into account."""
 
@@ -444,21 +461,27 @@ class IPKernelApp(BaseIPythonApplication, InteractiveShellApp,
             self.init_gui_pylab()
             self.init_extensions()
             self.init_code()
+        self.started = False
         # flush stdout/stderr, so that anything written to these streams during
         # initialization do not get associated with the first execution request
         sys.stdout.flush()
         sys.stderr.flush()
 
     def start(self):
-        if self.subapp is not None:
-            return self.subapp.start()
-        if self.poller is not None:
-            self.poller.start()
-        self.kernel.start()
-        try:
-            ioloop.IOLoop.instance().start()
-        except KeyboardInterrupt:
-            pass
+        if not self.started:
+            if self.subapp is not None:
+                return self.subapp.start()
+            if self.poller is not None:
+                self.poller.start()
+            self.kernel.start()
+            self.started = True
+            try:
+                ioloop.IOLoop.instance().start()
+            except KeyboardInterrupt:
+                pass
+            self.started = False
+        else:
+            old_kernel = self.kernel.push_nested_kernel()
 
 launch_new_instance = IPKernelApp.launch_instance
 
