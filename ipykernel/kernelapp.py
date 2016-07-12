@@ -42,7 +42,6 @@ from .parentpoller import ParentPollerUnix, ParentPollerWindows
 from jupyter_client.session import (
     Session, session_flags, session_aliases,
 )
-from .zmqshell import ZMQInteractiveShell
 
 #-----------------------------------------------------------------------------
 # Flags and Aliases
@@ -101,7 +100,7 @@ class IPKernelApp(BaseIPythonApplication, InteractiveShellApp,
     name='ipython-kernel'
     aliases = Dict(kernel_aliases)
     flags = Dict(kernel_flags)
-    classes = [IPythonKernel, ZMQInteractiveShell, ProfileDir, Session]
+    classes = [IPythonKernel, ProfileDir, Session]
     # the kernel class, as an importstring
     kernel_class = Type('ipykernel.ipkernel.IPythonKernel',
                         klass='ipykernel.kernelbase.Kernel',
